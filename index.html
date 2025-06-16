@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Multi-Page Sheet Site</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .nav {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="page">Loading...</div>
+
+  <script>
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLRD7zCZSwHw-0-ss2NfK1JtCl1EtYPL6NSvqKOjdeqNHv5-dQlLnwMMN6MQvrXyoHvkT5gM2zgYew/pubhtml';
+
+    async function fetchCSV(url) {
+      const res = await fetch(url);
+      const text = await res.text();
+      return text
+        .split('\n')
+        .map(row => row.split(',').map(cell => cell.trim()))
+        .filter(row => row.length >= 3);
+    }
+
+    function renderPage(data, index) {
+      const container = document.getElementById('page');
+      const row = data[index];
+
+      if (!row) {
+        container.innerHTML = `<p>Page not found.</p>`;
+        return;
+      }
+
+      const [title, text, link] = row;
+
+      container.innerHTML = `
+        <div class="card">
+          <h1>${title}</h1>
+          <p>${text}</p>
+          <p><a href="${link}" target="_blank">Go to Group</a></p>
+        </div>
+        <div class="nav">
+          ${index > 0 ? `<a href="#${index - 1}">← Previous</a>` : `<span></span>`}
+          ${index < data.length - 1 ? `<a href="#${index + 1}">Next →</a>` : `<span></span>`}
+        </div>
+      `;
+    }
+
+    function getPageIndex() {
+      const hash = location.hash.slice(1);
+      return isNaN(parseInt(hash)) ? 0 : parseInt(hash);
+    }
+
+    async function main() {
+      const rows = await fetchCSV(SHEET_CSV_URL);
+      function updatePage() {
+        const index = getPageIndex();
+        renderPage(rows.slice(1), index); // skip header
+      }
+
+      window.addEventListener('hashchange', updatePage);
+      updatePage();
+    }
+
+    main().catch(err => {
+      document.getElementById('page').innerHTML = 'Error loading sheet.';
+      console.error(err);
+    });
+  </script>
+
+</body>
+</html>
